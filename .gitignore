@@ -1,0 +1,22 @@
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*~
+
+# Obsidian (caso o vault seja versionado junto)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.trash/
+
+# Segredos — NUNCA versionar
+.env
+.env.*
+*.key
+*.pem
+secrets/
