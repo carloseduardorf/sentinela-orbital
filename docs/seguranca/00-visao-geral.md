@@ -2,6 +2,15 @@
 
 Capítulo de **Cybersecurity** da Sentinela Orbital — a camada que dá **longevidade e confiança** ao projeto. A entrega cobre os **4 pilares** do enunciado (10 pontos).
 
+## Integrantes do grupo
+
+| Nome | RM |
+|---|---|
+| Carlos Eduardo | 556785 |
+| Giulia Rocha | 558084 |
+| Caio Rossini | 555084 |
+| Gabriel Danius | 555747 |
+
 ## Mapa do capítulo
 
 | # | Pilar | Documento | Pts |

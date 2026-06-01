@@ -1,134 +1,174 @@
-# 🛰️ Sentinela Orbital
+# Sentinela Orbital — Sprint Cybersecurity (Global Solution)
 
-> Plataforma de **monitoramento e alerta precoce de ondas de calor extremo** que combina **dados orbitais** (satélites de temperatura de superfície) com **sensores IoT terrestres** para avisar a Defesa Civil, o sistema de saúde e a população **antes** que o calor vire emergência.
+## Integrantes do grupo
 
-![GS 2026](https://img.shields.io/badge/GS%202026-Cybersecurity-8A2BE2)
-![Foco](https://img.shields.io/badge/foco-Seguran%C3%A7a%20da%20Informa%C3%A7%C3%A3o-critical)
-![Tema](https://img.shields.io/badge/tema-Economia%20Espacial-0A66C2)
-![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-green)
-
-Este repositório é o **entregável de Cybersecurity** da Global Solution (3ES — 1º semestre/2026). Ele documenta a **camada de segurança** que dá longevidade e confiança à Sentinela Orbital, indo do **threat modeling** (pensar como atacante) à **blindagem** (pensar como defensor).
+| Nome | RM |
+|---|---|
+| Carlos Eduardo | 556785 |
+| Giulia Rocha | 558084 |
+| Caio Rossini | 555084 |
+| Gabriel Danius | 555747 |
 
 ---
 
-## 🌍 O problema
+Capítulo de **Cybersecurity** da Global Solution (3ES — 1º semestre/2026, FIAP)
+sobre a **Sentinela Orbital**: plataforma de monitoramento e alerta precoce de
+**ondas de calor extremo** que combina dados orbitais (satélites de temperatura
+de superfície) com sensores IoT terrestres para avisar Defesa Civil, saúde e
+população. Esta entrega é a **camada de segurança** que dá longevidade e
+confiança ao projeto.
 
-Ondas de calor extremo são um dos desastres climáticos que mais matam — de forma silenciosa e desigual. Idosos, crianças e bairros sem arborização ("ilhas de calor") são os mais expostos, e o alerta costuma chegar **tarde** e **sem granularidade local**.
+A entrega tem duas partes que se reforçam:
 
-## 💡 A solução
+- **Análise de segurança** completa nos 4 pilares do enunciado, em [`docs/seguranca/`](docs/seguranca).
+- **PoC em Python** (sem dependências) que **implementa e testa** os controles, em [`codigo/`](codigo) — provando que cada vetor de ataque é bloqueado.
 
-A Sentinela Orbital cria uma camada de inteligência sobre dados que já existem no espaço:
+> Mapeamento item-a-item dos pilares com documentos e testes: ver [SECURITY.md](SECURITY.md).
 
-1. **Coleta orbital** — temperatura de superfície (LST) de satélites (NASA VIIRS/MODIS, Copernicus Sentinel-3, GOES-16).
-2. **Calibração local** — sensores IoT urbanos confirmam a leitura no nível do bairro.
-3. **Detecção & previsão** — um modelo identifica e projeta janelas de risco por região.
-4. **Alerta acionável** — ao cruzar o limiar, dispara avisos segmentados (app, SMS/push e API para Defesa Civil e Saúde).
+---
 
-## 🏗️ Arquitetura
+## Cobertura da rubrica (4 pilares — 10 pts)
 
-```mermaid
-flowchart TB
-  subgraph Fontes["🛰️ Fontes de Dados"]
-    SAT["Satélites térmicos / LST"]
-    IOT["Sensores IoT urbanos"]
-  end
-  subgraph Borda["🛡️ Borda (Zero Trust)"]
-    GW["API Gateway + WAF"]
-    ING["Ingestão (valida assinatura/HMAC)"]
-  end
-  subgraph Nucleo["⚙️ Núcleo"]
-    PROC["Processamento"]
-    ML["Modelo de previsão"]
-    TSDB[("Banco geoespacial")]
-  end
-  subgraph Motor["🚨 Alertas"]
-    DISP["Despacho"]
-  end
-  subgraph Consumo["👥 Consumo"]
-    APP["App / Web"]
-    CIVIL["Defesa Civil & Saúde"]
-  end
-  SAT -- TLS/mTLS --> GW
-  IOT -- "TLS + assinatura" --> GW
-  GW --> ING --> PROC --> ML --> TSDB
-  ML --> DISP --> APP & CIVIL
+| # | Pilar | Pts | Análise | Evidência em código |
+|---|---|:--:|---|---|
+| 1 | Threat Modeling (ativos + ameaças STRIDE) | 2 | [01-threat-modeling.md](docs/seguranca/01-threat-modeling.md) | toda a suíte (cada teste = 1 ataque) |
+| 2 | Arquitetura de Segurança (acesso, dados, infra) | 3 | [02-arquitetura-de-seguranca.md](docs/seguranca/02-arquitetura-de-seguranca.md) | `telemetria` · `acesso` · `senhas` · `limite` |
+| 3 | Governança & Compliance (ISO 27001 + LGPD) | 2 | [03-governanca-e-compliance.md](docs/seguranca/03-governanca-e-compliance.md) | `privacidade` |
+| 4 | Resiliência (resposta a incidentes NIST) | 3 | [04-plano-de-resposta-a-incidentes.md](docs/seguranca/04-plano-de-resposta-a-incidentes.md) | regra das duas pessoas em `acesso` |
+| | **Total** | **10** | + [05-red-team-blue-team.md](docs/seguranca/05-red-team-blue-team.md) | **29 testes** |
+
+---
+
+## Arquitetura de defesa em profundidade
+
+```
+Fontes de dados                                     Consumo
+  Satélites LST  --\                          /-->  App / Web do cidadão
+  Sensores IoT   --|                          |-->  Defesa Civil & Saúde (API)
+                   v                          ^
+        +--------------------------------------------------+
+        | Borda (Zero Trust)                               |
+        |   API Gateway + WAF  ->  rate limit         (V3) |
+        |   Ingestão: verifica HMAC/assinatura        (V1) |
+        |--------------------------------------------------|
+        |   AuthN/AuthZ: tokens assinados + RBAC default-deny
+        |   Alerta em massa: regra das duas pessoas   (V4) |
+        |   Dados: AES-256 em repouso + cripto de campo    |
+        |   Privacidade: pseudonimização (LGPD)       (V5) |
+        |   Logs centralizados + SIEM + auditoria (WORM)   |
+        +--------------------------------------------------+
+                   |                          |
+                   v                          v
+        Banco geoespacial (TLS)        Motor de Alertas (fail-safe)
 ```
 
-> 🧠 Por que segurança é o alicerce: a Sentinela é um sistema de **segurança pública**. Silenciar um alerta real ou forjar um falso não é "perda de dados" — é **risco à vida**. E ela trata dados pessoais sensíveis (localização e saúde), sob a **LGPD**.
+A ordem é deliberada: a requisição passa por **tamanho/rate-limit** antes do
+parser; a telemetria só entra se a **assinatura conferir**; o disparo em massa
+exige **duas aprovações**; na dúvida, o sistema **degrada com segurança** (não
+silencia um alerta real, não dispara um falso).
 
 ---
 
-## 🔐 A camada de segurança (este entregável)
+## Decisões de segurança (e por quê)
 
-A análise completa está em [`docs/seguranca/`](docs/seguranca/) e a política de segurança em [`SECURITY.md`](SECURITY.md).
-
-| Pilar | Conteúdo | Pts | Documento |
-|---|---|:--:|---|
-| **1. Threat Modeling** | Ativos críticos + 6 vetores de ataque (STRIDE) | 2 | [01-threat-modeling.md](docs/seguranca/01-threat-modeling.md) |
-| **2. Arquitetura de Segurança** | Acesso (MFA, RBAC), proteção de dados (TLS/AES), infra (Zero Trust) | 3 | [02-arquitetura-de-seguranca.md](docs/seguranca/02-arquitetura-de-seguranca.md) |
-| **3. Governança & Compliance** | ISO 27001 (gestão de risco) + LGPD (privacidade) | 2 | [03-governanca-e-compliance.md](docs/seguranca/03-governanca-e-compliance.md) |
-| **4. Resiliência** | Plano de resposta a incidentes (NIST 800-61) | 3 | [04-plano-de-resposta-a-incidentes.md](docs/seguranca/04-plano-de-resposta-a-incidentes.md) |
-| **Red 🔴 vs Blue 🔵** | Atacando e blindando a própria ideia | — | [05-red-team-blue-team.md](docs/seguranca/05-red-team-blue-team.md) |
-
-### Como atendemos aos critérios
-
-- **Aplicabilidade** → os controles são desenhados sobre a arquitetura real acima.
-- **Profundidade técnica** → STRIDE, Zero Trust, ISO 27001, LGPD e o ciclo NIST de resposta a incidentes.
-- **Coerência** → a [matriz ameaça → controle](docs/seguranca/05-red-team-blue-team.md#matriz-ameaça-controle) liga **cada risco** à sua mitigação.
-
----
-
-## 💻 Código — Prova de Conceito (PoC)
-
-Além da análise, o repositório traz um **PoC em Python (sem dependências externas)**
-que **implementa e testa** os controles — provando que cada ataque do modelo de
-ameaças é efetivamente bloqueado. Detalhes e instruções em [`codigo/`](codigo/).
-
-| Módulo | Mitiga | Controle implementado |
+| Decisão | Alternativa rejeitada | Motivo |
 |---|---|---|
-| `telemetria.py` | V1, V2 | Assinatura HMAC + verificação (rejeita dado adulterado / replay) |
-| `acesso.py` | V4 | Tokens assinados, RBAC e **regra das duas pessoas** |
-| `senhas.py` | credenciais | Hash `scrypt` + salt (comparação em tempo constante) |
-| `limite.py` | V3 | Rate limiting (token bucket) anti-DDoS |
-| `privacidade.py` | V5 | Pseudonimização e minimização de dados (LGPD) |
+| HMAC-SHA256 na telemetria do sensor | confiar só no TLS | Integridade fim-a-fim; rejeita sensor falso / dado adulterado (V1/V2). |
+| HMAC sobre `payload + ts` + janela 5 min | assinar só o dado | Anti-replay. |
+| `hmac.compare_digest` | comparação `==` | Evita timing attack. |
+| Regra das duas pessoas p/ alerta em massa | um operador dispara sozinho | 1 conta comprometida não vira pânico (V4). |
+| RBAC default-deny (privilégio mínimo) | papel amplo por padrão | Cidadão nunca opera o Motor de Alertas. |
+| Argon2id (produção) / scrypt (PoC) | MD5 · SHA1 · bcrypt | KDF memória-dura: caro em GPU/ASIC. |
+| AES-256-GCM em repouso | AES-CBC + HMAC | Confidencialidade + integridade num passo, sem padding oracle. |
+| Pseudonimização HMAC | SHA-256 puro | Sem o salt não dá pra reverter por rainbow table (LGPD). |
+| Múltiplos canais de alerta (push/SMS/API) | canal único | Disponibilidade no pico do calor (V3). |
+| Fail-safe no Motor de Alertas | fail-open | Erra para o lado seguro: há vida em jogo. |
+
+---
+
+## Estrutura
+
+```
+sentinela-orbital/
+  README.md                este arquivo
+  SECURITY.md              cobertura dos pilares -> docs -> testes
+  LICENSE                  MIT
+  docs/seguranca/          análise completa (4 pilares + Red/Blue)
+    00-visao-geral.md
+    01-threat-modeling.md
+    02-arquitetura-de-seguranca.md
+    03-governanca-e-compliance.md
+    04-plano-de-resposta-a-incidentes.md
+    05-red-team-blue-team.md
+  codigo/                  PoC em Python (sem dependências)
+    demo.py                cenário end-to-end (controles + ataques)
+    sentinela/             telemetria · acesso · senhas · limite · privacidade
+    tests/                 29 testes (unittest), um bloco por controle
+```
+
+> O "cérebro" do projeto (base de conhecimento com ~28 notas interligadas) é
+> mantido em paralelo num vault **Obsidian**.
+
+---
+
+## Como executar (PoC)
+
+Requer apenas **Python 3.10+** (sem `pip install`).
 
 ```bash
 cd codigo
 python demo.py                             # cenário end-to-end (controles + ataques)
-python -m unittest discover -s tests -v    # 29 testes — todos passando ✅
+python -m unittest discover -s tests -v    # 29 testes — todos passando
 ```
-
-## 📁 Estrutura do repositório
-
-```
-sentinela-orbital/
-├── README.md          ← você está aqui
-├── SECURITY.md        ← política de segurança (como reportar vulnerabilidades)
-├── LICENSE
-├── codigo/            ← PoC em Python (controles + testes)
-│   ├── demo.py
-│   ├── sentinela/     ← telemetria, acesso, senhas, limite, privacidade
-│   └── tests/         ← 29 testes (unittest)
-└── docs/
-    └── seguranca/
-        ├── 00-visao-geral.md
-        ├── 01-threat-modeling.md
-        ├── 02-arquitetura-de-seguranca.md
-        ├── 03-governanca-e-compliance.md
-        ├── 04-plano-de-resposta-a-incidentes.md
-        └── 05-red-team-blue-team.md
-```
-
-> 📝 A base de conhecimento completa (o "cérebro" do projeto, com ~27 notas interligadas) é mantida em paralelo num vault **Obsidian**.
 
 ---
 
-## 👥 Equipe & disciplina
+## Testes (verificação dos controles)
 
-- **Disciplina:** Cybersecurity — Global Solution (3ES, 1º semestre / 2026)
-- **Projeto:** Sentinela Orbital
-- **Integrantes:** _preencher_
+Cada arquivo cobre caminho feliz **e** ataque bloqueado:
 
-## 📄 Licença
+| Arquivo | Controle | Vetor |
+|---|---|---|
+| `tests/test_telemetria.py` | Assinatura HMAC + anti-replay | V1, V2 |
+| `tests/test_acesso.py` | Tokens, RBAC, regra das duas pessoas | V4 |
+| `tests/test_senhas.py` | Hash scrypt + salt | credenciais |
+| `tests/test_limite.py` | Rate limiting (token bucket) | V3 |
+| `tests/test_privacidade.py` | Pseudonimização / minimização | V5 |
 
-Distribuído sob a licença [MIT](LICENSE).
+Resultado esperado: **29 passed**.
+
+---
+
+## Modelo de ameaças (STRIDE)
+
+| Ameaça | Mitigação | Onde |
+|---|---|---|
+| **S**poofing | HMAC na telemetria; tokens assinados | `codigo/sentinela/telemetria.py`, `acesso.py` |
+| **T**ampering | Assinatura rejeita dado alterado; AES-256 em repouso | `telemetria.py`, [02](docs/seguranca/02-arquitetura-de-seguranca.md) |
+| **R**epudiation | Trilhas de auditoria imutáveis (WORM) | [02](docs/seguranca/02-arquitetura-de-seguranca.md) |
+| **I**nformation Disclosure | Pseudonimização, minimização, criptografia | `privacidade.py`, [03](docs/seguranca/03-governanca-e-compliance.md) |
+| **D**enial of Service | Rate limiting; canais redundantes | `limite.py`, [02](docs/seguranca/02-arquitetura-de-seguranca.md) |
+| **E**levation of Privilege | RBAC default-deny; regra das duas pessoas | `acesso.py` |
+
+---
+
+## Operação e LGPD
+
+- **Dados sensíveis:** localização + vulnerabilidade de saúde → tratados sob a **LGPD** (base legal de proteção da vida / política pública; consentimento no app).
+- **Minimização:** alerta por região, não por indivíduo; localização reduzida a uma grade.
+- **Pseudonimização:** dashboards e ML operam por pseudônimo, sem expor identidade.
+- **Resposta a incidentes:** ciclo NIST 800-61; vazamento de PII notifica **ANPD** e titulares ([04](docs/seguranca/04-plano-de-resposta-a-incidentes.md)).
+- **Fail-safe:** o Motor de Alertas prioriza **não silenciar** um alerta real.
+
+---
+
+## Stack
+
+- **PoC:** Python 3.10+ — **somente biblioteca padrão** (`hmac`, `hashlib`/`scrypt`, `secrets`, `unittest`). Zero dependências: roda em qualquer máquina com Python.
+- **Produção (arquitetura proposta):** identidade OIDC/OAuth2, AES-256-GCM, TLS 1.3/mTLS, WAF + CDN/anycast, SIEM, CI/CD com SAST/DAST/SCA — detalhado em [`docs/seguranca/02-arquitetura-de-seguranca.md`](docs/seguranca/02-arquitetura-de-seguranca.md).
+
+---
+
+## Licença
+
+MIT — ver [LICENSE](LICENSE).
