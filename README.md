@@ -78,6 +78,26 @@ A análise completa está em [`docs/seguranca/`](docs/seguranca/) e a política 
 
 ---
 
+## 💻 Código — Prova de Conceito (PoC)
+
+Além da análise, o repositório traz um **PoC em Python (sem dependências externas)**
+que **implementa e testa** os controles — provando que cada ataque do modelo de
+ameaças é efetivamente bloqueado. Detalhes e instruções em [`codigo/`](codigo/).
+
+| Módulo | Mitiga | Controle implementado |
+|---|---|---|
+| `telemetria.py` | V1, V2 | Assinatura HMAC + verificação (rejeita dado adulterado / replay) |
+| `acesso.py` | V4 | Tokens assinados, RBAC e **regra das duas pessoas** |
+| `senhas.py` | credenciais | Hash `scrypt` + salt (comparação em tempo constante) |
+| `limite.py` | V3 | Rate limiting (token bucket) anti-DDoS |
+| `privacidade.py` | V5 | Pseudonimização e minimização de dados (LGPD) |
+
+```bash
+cd codigo
+python demo.py                             # cenário end-to-end (controles + ataques)
+python -m unittest discover -s tests -v    # 29 testes — todos passando ✅
+```
+
 ## 📁 Estrutura do repositório
 
 ```
@@ -85,6 +105,10 @@ sentinela-orbital/
 ├── README.md          ← você está aqui
 ├── SECURITY.md        ← política de segurança (como reportar vulnerabilidades)
 ├── LICENSE
+├── codigo/            ← PoC em Python (controles + testes)
+│   ├── demo.py
+│   ├── sentinela/     ← telemetria, acesso, senhas, limite, privacidade
+│   └── tests/         ← 29 testes (unittest)
 └── docs/
     └── seguranca/
         ├── 00-visao-geral.md

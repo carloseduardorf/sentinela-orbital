@@ -24,6 +24,10 @@ flowchart LR
 
 Primeiro **atacamos a própria ideia** (Red Team) para achar fraquezas; depois **blindamos** (Blue Team). A ponte entre as duas visões é a **matriz ameaça → controle**, que garante a coerência.
 
+> 💻 **Da teoria à prática:** os controles não ficam só no papel — há um PoC em
+> Python (testado) que os implementa em [`codigo/`](../../codigo/), provando que
+> os ataques do modelo de ameaças são bloqueados.
+
 ## Contexto que molda as prioridades
 
 A Sentinela é um sistema de **alerta de emergência**. Por isso, na tríade **CIA** (Confidencialidade, Integridade, Disponibilidade), os pesos se invertem em relação à TI comum:
